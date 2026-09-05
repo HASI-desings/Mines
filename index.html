@@ -80,7 +80,7 @@
   .stat-box.mult .val{ color:var(--gem-a); }
   .stat-box.profit .val{ color:var(--gold); }
 
-  .btn{ width:100%; padding:16px; border-radius:14px; border:none; font-size:15px; font-weight:800; text-transform:uppercase; cursor:pointer; margin-top: 20px; transition: 0.2s;}
+  .btn{ width:100%; padding:16px; border-radius:14px; border:none; font-size:15px; font-weight:800; text-transform:uppercase; cursor:pointer; margin-top: 20px;}
   .btn-play { background:linear-gradient(135deg, var(--gem-a), var(--gem-b)); color:#000; }
   .btn-cashout{ background:linear-gradient(135deg, var(--gold), #ff9f43); color:#332200; box-shadow:0 0 20px rgba(255,210,63,0.4); }
 
@@ -183,10 +183,8 @@
             </div>
           </div>
 
-          <button class="btn btn-play" id="playBtn">Place Bet</button>
           <button class="btn btn-cashout" id="cashoutBtn" style="display:none;">Cash Out $0.00</button>
-          
-          <div style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 15px;" id="startHint">Click "Place Bet" or select any tile to start.</div>
+          <div style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 15px;" id="startHint">Select any tile to start a new round.</div>
         </div>
 
         <div class="board-wrap glass" id="boardWrap">
@@ -255,32 +253,15 @@ let currentUser = null;
 // 2. Auth Logic
 const emailInput = document.getElementById('emailInput');
 const passwordInput = document.getElementById('passwordInput');
-const signupBtn = document.getElementById('signupBtn');
-const loginBtn = document.getElementById('loginBtn');
 
-signupBtn.addEventListener('click', async () => {
-  if (!emailInput.value || !passwordInput.value) return showToast('Enter email and password', 'lose');
-  
-  signupBtn.textContent = "Loading...";
+document.getElementById('signupBtn').addEventListener('click', async () => {
   const { data, error } = await supabaseClient.auth.signUp({ email: emailInput.value, password: passwordInput.value });
-  signupBtn.textContent = "Sign Up";
-
-  if (error) {
-    showToast(error.message, 'lose');
-  } else if (data.session) {
-    showToast('Account created successfully!', 'win');
-  } else {
-    showToast('Check your email to verify.', 'win');
-  }
+  if (error) showToast(error.message, 'lose');
+  else showToast('Sign up successful! Please log in.', 'win');
 });
 
-loginBtn.addEventListener('click', async () => {
-  if (!emailInput.value || !passwordInput.value) return showToast('Enter email and password', 'lose');
-
-  loginBtn.textContent = "Loading...";
+document.getElementById('loginBtn').addEventListener('click', async () => {
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
-  loginBtn.textContent = "Log In";
-
   if (error) showToast(error.message, 'lose');
 });
 
@@ -293,7 +274,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     currentUser = session.user;
     document.getElementById('authView').style.display = 'none';
     document.getElementById('mainLayout').style.display = 'grid';
-    await fetchUserData(); 
+    await fetchUserData();
   } else {
     currentUser = null;
     document.getElementById('authView').style.display = 'flex';
@@ -338,9 +319,9 @@ const el = {
   balanceVal: document.getElementById('balanceVal'), betInput: document.getElementById('betInput'),
   minesSelect: document.getElementById('minesSelect'), nextMultVal: document.getElementById('nextMultVal'),
   profitVal: document.getElementById('profitVal'), cashoutBtn: document.getElementById('cashoutBtn'),
-  playBtn: document.getElementById('playBtn'), grid: document.getElementById('grid'),
-  toast: document.getElementById('toast'), startHint: document.getElementById('startHint'),
-  historyList: document.getElementById('historyList'), quickBtns: document.querySelectorAll('.bet-quick-btns button')
+  grid: document.getElementById('grid'), toast: document.getElementById('toast'),
+  startHint: document.getElementById('startHint'), historyList: document.getElementById('historyList'),
+  quickBtns: document.querySelectorAll('.bet-quick-btns button')
 };
 
 const GEM_SVG = `<svg viewBox="0 0 64 64" fill="none" style="width:56%;height:56%;filter:drop-shadow(0 0 10px #00ffb2);"><polygon points="32,4 50,20 58,24 32,60 6,24 14,20" fill="#00ffb2"/></svg>`;
@@ -352,24 +333,16 @@ function showToast(msg, type){
   setTimeout(()=> el.toast.classList.remove('show'), 2600);
 }
 
-// 5. Data Syncing (Bulletproofed)
+// 5. Data Syncing
 async function fetchUserData() {
-  try {
-    const { data, error } = await supabaseClient.from('player_balances').select('*').eq('user_id', currentUser.id).single();
-    
-    if (data) {
-      state.balances.real = parseFloat(data.real_balance);
-      state.balances.demo = parseFloat(data.demo_balance);
-    } else {
-      const { error: insertErr } = await supabaseClient.from('player_balances').insert([{ user_id: currentUser.id }]);
-      if (insertErr) console.error("RLS is likely blocking balance creation:", insertErr);
-      state.balances = { real: 0.00, demo: 1000.00 };
-    }
-  } catch (err) {
-    console.error("Database fetch error:", err);
+  const { data, error } = await supabaseClient.from('player_balances').select('*').eq('user_id', currentUser.id).single();
+  if (data) {
+    state.balances.real = parseFloat(data.real_balance);
+    state.balances.demo = parseFloat(data.demo_balance);
+  } else {
+    await supabaseClient.from('player_balances').insert([{ user_id: currentUser.id }]);
     state.balances = { real: 0.00, demo: 1000.00 };
   }
-  
   updateDashboard();
   loadHistoryFromDB();
 }
@@ -489,7 +462,6 @@ async function startRound() {
   }
   state.boardMines = new Set(indices.slice(0, state.mineCount));
 
-  el.playBtn.style.display = 'none';
   el.cashoutBtn.style.display = 'block';
   el.startHint.style.display = 'none';
   el.betInput.disabled = true;
@@ -499,11 +471,11 @@ async function startRound() {
   return true;
 }
 
-async function handleTileClick(index, tileEl) {
+function handleTileClick(index, tileEl) {
   if (tileEl.classList.contains('flipped') || tileEl.classList.contains('disabled')) return;
   
   if (!state.inRound) {
-    const started = await startRound(); // Start cycle implicitly when clicked
+    const started = startRound(); // Start cycle implicitly when clicked
     if(!started) return;
   }
 
@@ -526,7 +498,6 @@ async function handleTileClick(index, tileEl) {
 
 async function endRound(won) {
   state.inRound = false;
-  el.playBtn.style.display = 'block';
   el.cashoutBtn.style.display = 'none';
   el.startHint.style.display = 'block';
   el.betInput.disabled = false;
@@ -561,10 +532,6 @@ async function endRound(won) {
   await supabaseClient.from('game_history').insert([record]);
   updateDashboard();
 }
-
-el.playBtn.addEventListener('click', async () => {
-  if (!state.inRound) await startRound();
-});
 
 el.cashoutBtn.addEventListener('click', () => {
   if (state.inRound && state.picks > 0) endRound(true);
