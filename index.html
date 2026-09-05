@@ -80,7 +80,7 @@
   .stat-box.mult .val{ color:var(--gem-a); }
   .stat-box.profit .val{ color:var(--gold); }
 
-  .btn{ width:100%; padding:16px; border-radius:14px; border:none; font-size:15px; font-weight:800; text-transform:uppercase; cursor:pointer; margin-top: 20px;}
+  .btn{ width:100%; padding:16px; border-radius:14px; border:none; font-size:15px; font-weight:800; text-transform:uppercase; cursor:pointer; margin-top: 20px; transition: 0.2s;}
   .btn-play { background:linear-gradient(135deg, var(--gem-a), var(--gem-b)); color:#000; }
   .btn-cashout{ background:linear-gradient(135deg, var(--gold), #ff9f43); color:#332200; box-shadow:0 0 20px rgba(255,210,63,0.4); }
 
@@ -253,23 +253,32 @@ let currentUser = null;
 // 2. Auth Logic
 const emailInput = document.getElementById('emailInput');
 const passwordInput = document.getElementById('passwordInput');
+const signupBtn = document.getElementById('signupBtn');
+const loginBtn = document.getElementById('loginBtn');
 
-document.getElementById('signupBtn').addEventListener('click', async () => {
-  if (!emailInput.value || !passwordInput.value) {
-    return showToast('Please enter email and password', 'lose');
-  }
+signupBtn.addEventListener('click', async () => {
+  if (!emailInput.value || !passwordInput.value) return showToast('Enter email and password', 'lose');
+  
+  signupBtn.textContent = "Loading...";
   const { data, error } = await supabaseClient.auth.signUp({ email: emailInput.value, password: passwordInput.value });
+  signupBtn.textContent = "Sign Up";
+
   if (error) {
     showToast(error.message, 'lose');
+  } else if (data.session) {
+    showToast('Account created successfully!', 'win');
   } else {
-    // If 'Confirm Email' is disabled in Supabase, the session is created automatically.
-    if(data.session) showToast('Account created successfully!', 'win');
-    else showToast('Sign up successful! Please check your email to verify.', 'win');
+    showToast('Check your email to verify.', 'win');
   }
 });
 
-document.getElementById('loginBtn').addEventListener('click', async () => {
+loginBtn.addEventListener('click', async () => {
+  if (!emailInput.value || !passwordInput.value) return showToast('Enter email and password', 'lose');
+
+  loginBtn.textContent = "Loading...";
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
+  loginBtn.textContent = "Log In";
+
   if (error) showToast(error.message, 'lose');
 });
 
@@ -282,7 +291,7 @@ supabaseClient.auth.onAuthStateChange(async (event, session) => {
     currentUser = session.user;
     document.getElementById('authView').style.display = 'none';
     document.getElementById('mainLayout').style.display = 'grid';
-    await fetchUserData();
+    await fetchUserData(); 
   } else {
     currentUser = null;
     document.getElementById('authView').style.display = 'flex';
@@ -341,16 +350,24 @@ function showToast(msg, type){
   setTimeout(()=> el.toast.classList.remove('show'), 2600);
 }
 
-// 5. Data Syncing
+// 5. Data Syncing (Bulletproofed)
 async function fetchUserData() {
-  const { data, error } = await supabaseClient.from('player_balances').select('*').eq('user_id', currentUser.id).single();
-  if (data) {
-    state.balances.real = parseFloat(data.real_balance);
-    state.balances.demo = parseFloat(data.demo_balance);
-  } else {
-    await supabaseClient.from('player_balances').insert([{ user_id: currentUser.id }]);
+  try {
+    const { data, error } = await supabaseClient.from('player_balances').select('*').eq('user_id', currentUser.id).single();
+    
+    if (data) {
+      state.balances.real = parseFloat(data.real_balance);
+      state.balances.demo = parseFloat(data.demo_balance);
+    } else {
+      const { error: insertErr } = await supabaseClient.from('player_balances').insert([{ user_id: currentUser.id }]);
+      if (insertErr) console.error("RLS is likely blocking balance creation:", insertErr);
+      state.balances = { real: 0.00, demo: 1000.00 };
+    }
+  } catch (err) {
+    console.error("Database fetch error:", err);
     state.balances = { real: 0.00, demo: 1000.00 };
   }
+  
   updateDashboard();
   loadHistoryFromDB();
 }
