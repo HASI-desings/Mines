@@ -255,9 +255,17 @@ const emailInput = document.getElementById('emailInput');
 const passwordInput = document.getElementById('passwordInput');
 
 document.getElementById('signupBtn').addEventListener('click', async () => {
+  if (!emailInput.value || !passwordInput.value) {
+    return showToast('Please enter email and password', 'lose');
+  }
   const { data, error } = await supabaseClient.auth.signUp({ email: emailInput.value, password: passwordInput.value });
-  if (error) showToast(error.message, 'lose');
-  else showToast('Sign up successful! Please log in.', 'win');
+  if (error) {
+    showToast(error.message, 'lose');
+  } else {
+    // If 'Confirm Email' is disabled in Supabase, the session is created automatically.
+    if(data.session) showToast('Account created successfully!', 'win');
+    else showToast('Sign up successful! Please check your email to verify.', 'win');
+  }
 });
 
 document.getElementById('loginBtn').addEventListener('click', async () => {
