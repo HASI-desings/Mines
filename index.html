@@ -183,8 +183,10 @@
             </div>
           </div>
 
+          <button class="btn btn-play" id="playBtn">Place Bet</button>
           <button class="btn btn-cashout" id="cashoutBtn" style="display:none;">Cash Out $0.00</button>
-          <div style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 15px;" id="startHint">Select any tile to start a new round.</div>
+          
+          <div style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 15px;" id="startHint">Click "Place Bet" or select any tile to start.</div>
         </div>
 
         <div class="board-wrap glass" id="boardWrap">
@@ -336,9 +338,9 @@ const el = {
   balanceVal: document.getElementById('balanceVal'), betInput: document.getElementById('betInput'),
   minesSelect: document.getElementById('minesSelect'), nextMultVal: document.getElementById('nextMultVal'),
   profitVal: document.getElementById('profitVal'), cashoutBtn: document.getElementById('cashoutBtn'),
-  grid: document.getElementById('grid'), toast: document.getElementById('toast'),
-  startHint: document.getElementById('startHint'), historyList: document.getElementById('historyList'),
-  quickBtns: document.querySelectorAll('.bet-quick-btns button')
+  playBtn: document.getElementById('playBtn'), grid: document.getElementById('grid'),
+  toast: document.getElementById('toast'), startHint: document.getElementById('startHint'),
+  historyList: document.getElementById('historyList'), quickBtns: document.querySelectorAll('.bet-quick-btns button')
 };
 
 const GEM_SVG = `<svg viewBox="0 0 64 64" fill="none" style="width:56%;height:56%;filter:drop-shadow(0 0 10px #00ffb2);"><polygon points="32,4 50,20 58,24 32,60 6,24 14,20" fill="#00ffb2"/></svg>`;
@@ -487,6 +489,7 @@ async function startRound() {
   }
   state.boardMines = new Set(indices.slice(0, state.mineCount));
 
+  el.playBtn.style.display = 'none';
   el.cashoutBtn.style.display = 'block';
   el.startHint.style.display = 'none';
   el.betInput.disabled = true;
@@ -496,11 +499,11 @@ async function startRound() {
   return true;
 }
 
-function handleTileClick(index, tileEl) {
+async function handleTileClick(index, tileEl) {
   if (tileEl.classList.contains('flipped') || tileEl.classList.contains('disabled')) return;
   
   if (!state.inRound) {
-    const started = startRound(); // Start cycle implicitly when clicked
+    const started = await startRound(); // Start cycle implicitly when clicked
     if(!started) return;
   }
 
@@ -523,6 +526,7 @@ function handleTileClick(index, tileEl) {
 
 async function endRound(won) {
   state.inRound = false;
+  el.playBtn.style.display = 'block';
   el.cashoutBtn.style.display = 'none';
   el.startHint.style.display = 'block';
   el.betInput.disabled = false;
@@ -557,6 +561,10 @@ async function endRound(won) {
   await supabaseClient.from('game_history').insert([record]);
   updateDashboard();
 }
+
+el.playBtn.addEventListener('click', async () => {
+  if (!state.inRound) await startRound();
+});
 
 el.cashoutBtn.addEventListener('click', () => {
   if (state.inRound && state.picks > 0) endRound(true);
