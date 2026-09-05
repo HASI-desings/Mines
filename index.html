@@ -7,149 +7,146 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --gem-a:#00ffb2;
-    --gem-b:#00d4ff;
-    --mine-a:#ff2d55;
-    --mine-b:#ff6b35;
+    --gem-a:#00ffb2; --gem-b:#00d4ff;
+    --mine-a:#ff2d55; --mine-b:#ff6b35;
     --gold:#ffd23f;
     --glass-bg:rgba(20,22,38,0.65);
     --glass-border:rgba(255,255,255,0.14);
     --text-dim:rgba(255,255,255,0.55);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{
-    height:100%; font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:#fff; overflow-x:hidden; background:#06050f;
-  }
+  html,body{ height:100%; font-family:'Segoe UI',system-ui,sans-serif; color:#fff; overflow-x:hidden; background:#06050f; }
 
-  /* Background Effects */
+  /* Background */
   .mesh-bg{ position:fixed; inset:0; z-index:-1; overflow:hidden; background:#06050f; }
   .mesh-bg::before, .mesh-bg::after, .mesh-bg .blob{ content:''; position:absolute; border-radius:50%; filter:blur(90px); opacity:0.55; }
   .mesh-bg::before{ width:60vw; height:60vw; background:radial-gradient(circle, #1b1145 0%, transparent 70%); top:-15%; left:-10%; }
   .mesh-bg::after{ width:55vw; height:55vw; background:radial-gradient(circle, #041f3d 0%, transparent 70%); bottom:-20%; right:-10%; }
-  .mesh-bg .blob{ width:45vw; height:45vw; background:radial-gradient(circle, #2b0a30 0%, transparent 70%); top:30%; left:35%; }
 
-  /* Glass Panel */
-  .glass{
-    background:var(--glass-bg); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-    border:1px solid var(--glass-border); border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.4);
-  }
+  .glass{ background:var(--glass-bg); backdrop-filter:blur(18px); border:1px solid var(--glass-border); border-radius:20px; box-shadow:0 8px 40px rgba(0,0,0,0.4); }
 
-  /* Master Layout */
-  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; padding: 20px; height: 100vh; }
-  .main-area { overflow-y: auto; padding-right: 5px; }
-  .main-area::-webkit-scrollbar { width: 6px; }
-  .main-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  /* Auth View */
+  #authView { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .auth-box { width: 100%; max-width: 400px; padding: 30px; text-align: center; }
+  .auth-box h2 { margin-bottom: 20px; font-size: 24px; color: var(--gem-a); }
+  .auth-input { width: 100%; padding: 14px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: #fff; outline: none; }
+  .auth-btns { display: flex; gap: 10px; margin-top: 10px; }
   
-  /* Sidebar Nav */
+  /* Main Layout */
+  .layout { display: none; grid-template-columns: 240px 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; padding: 20px; height: 100vh; }
+  .main-area { overflow-y: auto; padding-right: 5px; }
+  
+  /* Sidebar */
   .sidebar { display: flex; flex-direction: column; gap: 15px; padding: 25px; height: fit-content; }
   .brand{ display:flex; align-items:center; gap:10px; margin-bottom: 20px;}
   .brand svg{ width:34px; height:34px; filter:drop-shadow(0 0 10px var(--gem-a)); }
-  .brand h1{ font-size:22px; letter-spacing:3px; font-weight:800; background:linear-gradient(90deg,var(--gem-a),var(--gem-b)); -webkit-background-clip:text; color:transparent; }
-  .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid transparent; color: var(--text-dim); padding: 14px; border-radius: 12px; font-weight: bold; text-align: left; cursor: pointer; transition: 0.3s; font-size: 15px;}
+  .brand h1{ font-size:22px; font-weight:800; background:linear-gradient(90deg,var(--gem-a),var(--gem-b)); -webkit-background-clip:text; color:transparent; }
+  .nav-btn { background: rgba(255,255,255,0.05); border: 1px solid transparent; color: var(--text-dim); padding: 14px; border-radius: 12px; font-weight: bold; text-align: left; cursor: pointer; transition: 0.3s; }
   .nav-btn:hover { background: rgba(255,255,255,0.1); }
-  .nav-btn.active { background: rgba(0,255,178,0.1); border-color: rgba(0,255,178,0.3); color: #fff; box-shadow: 0 0 15px rgba(0,255,178,0.1); }
+  .nav-btn.active { background: rgba(0,255,178,0.1); border-color: rgba(0,255,178,0.3); color: #fff; }
+  .logout-btn { margin-top: auto; color: var(--mine-a); }
 
-  /* View Container */
   .view { display: none; animation: fadeIn 0.3s ease; }
   .view.active { display: block; }
   @keyframes fadeIn { from{ opacity: 0; transform: translateY(10px); } to{ opacity: 1; transform: translateY(0); } }
 
-  /* Game Layout */
+  /* Game UI */
   .game-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
   @media (max-width: 900px){
     .layout { grid-template-columns: 1fr; height: auto; }
-    .sidebar { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; }
-    .brand { margin-bottom: 0; margin-right: auto; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; }
     .nav-btn { text-align: center; flex: 1; padding: 10px; font-size: 13px;}
     .game-layout { grid-template-columns: 1fr; }
   }
 
-  /* UI Elements */
   .field-label{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px; display:flex; justify-content:space-between; }
   .balance-row{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); margin-bottom: 15px;}
-  .balance-row .label{ font-size:11px; color:var(--text-dim); letter-spacing:1px; }
   .balance-row .value{ font-size:20px; font-weight:700; color:var(--gold); }
   
   .mode-switch { display: flex; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 4px; border: 1px solid var(--glass-border); margin-bottom: 20px;}
-  .mode-switch button { flex: 1; padding: 8px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; border-radius: 8px; transition: 0.3s; font-size: 13px;}
+  .mode-switch button { flex: 1; padding: 8px; border: none; background: none; color: var(--text-dim); font-weight: bold; cursor: pointer; border-radius: 8px; transition: 0.3s;}
   .mode-switch button.active { background: rgba(255,255,255,0.15); color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
   .bet-input-wrap{ position:relative; display:flex; align-items:center; margin-bottom: 20px;}
   .app-input { width:100%; padding:14px 16px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.12); border-radius:12px; color:#fff; font-size:16px; font-weight:600; outline:none; appearance: none; }
-  .app-input:focus { border-color: var(--gem-a); }
   select.app-input option { background: #141626; color: #fff; }
-  .bet-input-wrap input { padding-right: 90px; }
   .bet-quick-btns{ position:absolute; right:6px; display:flex; gap:4px; }
   .bet-quick-btns button{ font-size:10px; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.06); color:#fff; cursor:pointer; }
   
   .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top: 20px;}
   .stat-box{ padding:14px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); text-align:center; }
-  .stat-box .lbl{ font-size:10px; letter-spacing:1px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;}
+  .stat-box .lbl{ font-size:10px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;}
   .stat-box .val{ font-size:18px; font-weight:800; }
   .stat-box.mult .val{ color:var(--gem-a); }
   .stat-box.profit .val{ color:var(--gold); }
 
-  .btn{ width:100%; padding:16px; border-radius:14px; border:none; font-size:15px; font-weight:800; text-transform:uppercase; cursor:pointer; transition: 0.2s ease; margin-top: 20px;}
-  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
-  .btn-play { background:linear-gradient(135deg, var(--gem-a), var(--gem-b)); color:#000; box-shadow:0 0 20px rgba(0,255,178,0.3); }
-  .btn-cashout{ background:linear-gradient(135deg, var(--gold), #ff9f43); color:#332200; box-shadow:0 0 20px rgba(255,210,63,0.4); animation:pulseGlow 1.6s ease-in-out infinite; }
-  @keyframes pulseGlow{ 0%,100%{ box-shadow:0 0 20px rgba(255,210,63,0.4); } 50%{ box-shadow:0 0 38px rgba(255,210,63,0.75); } }
+  .btn{ width:100%; padding:16px; border-radius:14px; border:none; font-size:15px; font-weight:800; text-transform:uppercase; cursor:pointer; margin-top: 20px;}
+  .btn-play { background:linear-gradient(135deg, var(--gem-a), var(--gem-b)); color:#000; }
+  .btn-cashout{ background:linear-gradient(135deg, var(--gold), #ff9f43); color:#332200; box-shadow:0 0 20px rgba(255,210,63,0.4); }
 
-  /* Grid */
+  /* Board */
   .board-wrap{ padding:26px; display:flex; flex-direction:column; align-items:center; gap:20px; }
-  .board-header{ display:flex; justify-content:space-between; width:100%; }
-  .board-header .title{ font-size:14px; letter-spacing:2px; color:var(--text-dim); text-transform:uppercase; }
   .grid{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:12px; width:100%; max-width:520px; aspect-ratio:1/1; perspective:1000px; }
   .tile{ position:relative; width:100%; height:100%; cursor:pointer; transform-style:preserve-3d; transition:transform .5s cubic-bezier(.2,.9,.25,1); }
   .tile.flipped{ transform:rotateY(180deg); }
   .tile.disabled{ cursor:default; }
-  .tile-face{ position:absolute; inset:0; border-radius:14px; display:flex; align-items:center; justify-content:center; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
-  .tile-front{ background:linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.14); box-shadow:0 6px 14px rgba(0,0,0,0.35); transition: 0.18s ease; }
-  .tile:not(.disabled):not(.flipped) .tile-front:hover{ transform:translateY(-3px) scale(1.03); border-color:rgba(0,255,178,0.5); }
+  .tile-face{ position:absolute; inset:0; border-radius:14px; display:flex; align-items:center; justify-content:center; backface-visibility:hidden; }
+  .tile-front{ background:linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02)); border:1px solid rgba(255,255,255,0.14); }
   .tile-back{ transform:rotateY(180deg); display:flex; align-items:center; justify-content:center; }
-  .tile-back.gem-face{ background:linear-gradient(145deg, rgba(0,255,178,0.16), rgba(0,212,255,0.06)); border:1px solid rgba(0,255,178,0.45); box-shadow:0 0 22px rgba(0,255,178,0.35); }
-  .tile-back.mine-face{ background:linear-gradient(145deg, rgba(255,45,85,0.22), rgba(255,107,53,0.08)); border:1px solid rgba(255,45,85,0.55); box-shadow:0 0 24px rgba(255,45,85,0.45); }
-  .tile-back.mine-face.dim{ opacity:0.35; box-shadow:none; }
+  .tile-back.gem-face{ background:linear-gradient(145deg, rgba(0,255,178,0.16), rgba(0,212,255,0.06)); border:1px solid rgba(0,255,178,0.45); }
+  .tile-back.mine-face{ background:linear-gradient(145deg, rgba(255,45,85,0.22), rgba(255,107,53,0.08)); border:1px solid rgba(255,45,85,0.55); }
+  .tile-back.mine-face.dim{ opacity:0.35; }
   .tile-back svg{ width:56%; height:56%; }
-  .tile.postgame-dim .tile-front{ opacity:0.3; }
 
-  /* History & Deposit Views */
+  /* Secondary Views */
   .content-box { padding: 30px; max-width: 800px; margin: 0 auto; }
   .history-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
   .history-row { display: flex; justify-content: space-between; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
   .history-row.win { border-left: 4px solid var(--gem-a); }
   .history-row.loss { border-left: 4px solid var(--mine-a); }
-  .deposit-address { font-family: monospace; font-size: 15px; color: var(--gem-a); background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px dashed var(--gem-a); word-break: break-all; user-select: all; text-align: center; margin-bottom: 20px;}
+  .deposit-address { font-family: monospace; font-size: 15px; color: var(--gem-a); background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px dashed var(--gem-a); text-align: center; margin-bottom: 20px;}
 
-  .toast{ position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-20px); padding:12px 22px; border-radius:12px; font-size:13px; font-weight:700; z-index:200; opacity:0; transition:0.3s; pointer-events: none;}
+  .toast{ position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-20px); padding:12px 22px; border-radius:12px; font-weight:700; z-index:200; opacity:0; transition:0.3s; pointer-events: none;}
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .toast.win{ background:linear-gradient(135deg, var(--gem-a), var(--gem-b)); color:#04231b; }
-  .toast.lose{ background:linear-gradient(135deg, var(--mine-a), var(--mine-b)); color:#2a0009; }
+  .toast.lose{ background:linear-gradient(135deg, var(--mine-a), var(--mine-b)); color:#fff; }
 </style>
 </head>
 <body>
 
 <div class="mesh-bg"><div class="blob"></div></div>
 
-<div class="layout">
-  <!-- SIDEBAR NAVIGATION -->
+<!-- AUTH VIEW -->
+<div id="authView">
+  <div class="auth-box glass">
+    <svg viewBox="0 0 24 24" fill="none" style="width:60px; height:60px; margin: 0 auto 15px;"><path d="M12 2L4 9l8 13 8-13-8-7z" fill="url(#bg1)"/><defs><linearGradient id="bg1" x1="4" y1="2" x2="20" y2="22"><stop stop-color="#00ffb2"/><stop offset="1" stop-color="#00d4ff"/></linearGradient></defs></svg>
+    <h2>MINES CASINO</h2>
+    <input type="email" id="emailInput" class="auth-input" placeholder="Email Address">
+    <input type="password" id="passwordInput" class="auth-input" placeholder="Password">
+    <div class="auth-btns">
+      <button class="btn btn-play" id="loginBtn" style="margin-top:0;">Log In</button>
+      <button class="btn btn-play" id="signupBtn" style="margin-top:0; background:rgba(255,255,255,0.1); color:#fff;">Sign Up</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="layout" id="mainLayout">
   <div class="sidebar glass">
     <div class="brand">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 9l8 13 8-13-8-7z" fill="url(#bg1)"/><defs><linearGradient id="bg1" x1="4" y1="2" x2="20" y2="22"><stop stop-color="#00ffb2"/><stop offset="1" stop-color="#00d4ff"/></linearGradient></defs></svg>
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 9l8 13 8-13-8-7z" fill="url(#bg1)"/></svg>
       <h1>MINES</h1>
     </div>
     <button class="nav-btn active" data-view="gameView">🎮 Play Game</button>
     <button class="nav-btn" data-view="historyView">🕒 Bet History</button>
     <button class="nav-btn" data-view="depositView">💳 Deposit Funds</button>
+    <button class="nav-btn logout-btn" id="logoutBtn">🚪 Log Out</button>
   </div>
 
-  <!-- MAIN AREA -->
   <div class="main-area">
-    
     <!-- GAME VIEW -->
     <div id="gameView" class="view active">
       <div class="game-layout">
-        <!-- Control Panel -->
         <div class="glass" style="padding:22px; height:fit-content;">
           <div class="mode-switch">
             <button id="modeReal" class="active">Real</button>
@@ -187,14 +184,11 @@
           </div>
 
           <button class="btn btn-cashout" id="cashoutBtn" style="display:none;">Cash Out $0.00</button>
-          <div style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 15px;" id="startHint">Select any tile on the board to start the round.</div>
+          <div style="text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 15px;" id="startHint">Select any tile to start a new round.</div>
         </div>
 
-        <!-- Board -->
         <div class="board-wrap glass" id="boardWrap">
-          <div class="board-header">
-            <span class="title">5 × 5 Grid</span>
-          </div>
+          <div class="board-header"><span class="title">5 × 5 Grid</span></div>
           <div class="grid" id="grid"></div>
         </div>
       </div>
@@ -204,10 +198,7 @@
     <div id="historyView" class="view">
       <div class="glass content-box">
         <h2 style="margin-bottom:5px;">Bet History</h2>
-        <p style="font-size:13px; color:var(--text-dim);">Recent plays for this session</p>
-        <div class="history-list" id="historyList">
-          <div style="color:var(--text-dim); text-align:center; padding:20px;">No bets placed yet.</div>
-        </div>
+        <div class="history-list" id="historyList"></div>
       </div>
     </div>
 
@@ -215,7 +206,7 @@
     <div id="depositView" class="view">
       <div class="glass content-box">
         <h2 style="margin-bottom:5px;">Deposit Crypto</h2>
-        <p style="font-size:13px; color:var(--text-dim); margin-bottom: 25px;">Top up your Real balance by sending crypto to the addresses below.</p>
+        <p style="font-size:13px; color:var(--text-dim); margin-bottom: 25px;">Top up your Real balance by sending crypto.</p>
         
         <div class="field-label">Select Cryptocurrency</div>
         <select id="depositCoin" class="app-input" style="margin-bottom: 20px;">
@@ -240,28 +231,59 @@
         <div id="addressGroup" style="display: none;">
           <div class="field-label">Send strictly to this Address</div>
           <div class="deposit-address" id="depositAddressText">...</div>
-          
           <div class="field-label">Amount Sent</div>
           <input type="number" id="depositAmount" class="app-input" placeholder="Enter amount..." style="margin-bottom: 20px;">
-          
-          <button id="submitDepositBtn" class="btn btn-play" style="margin-top: 0;">Submit Deposit Request</button>
+          <button id="submitDepositBtn" class="btn btn-play" style="margin-top: 0;">Submit Request</button>
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// Supabase Configuration
+// 1. Supabase Initialization
 const supabaseUrl = 'https://tovdgkyhexwzfooozydj.supabase.co';
 const supabaseKey = 'sb_publishable_kydvG8dqzB5MdlgAyj85-A_8SieoZyc';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// Navigation Logic
-document.querySelectorAll('.nav-btn').forEach(btn => {
+let currentUser = null;
+
+// 2. Auth Logic
+const emailInput = document.getElementById('emailInput');
+const passwordInput = document.getElementById('passwordInput');
+
+document.getElementById('signupBtn').addEventListener('click', async () => {
+  const { data, error } = await supabaseClient.auth.signUp({ email: emailInput.value, password: passwordInput.value });
+  if (error) showToast(error.message, 'lose');
+  else showToast('Sign up successful! Please log in.', 'win');
+});
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
+  if (error) showToast(error.message, 'lose');
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+});
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if (session) {
+    currentUser = session.user;
+    document.getElementById('authView').style.display = 'none';
+    document.getElementById('mainLayout').style.display = 'grid';
+    await fetchUserData();
+  } else {
+    currentUser = null;
+    document.getElementById('authView').style.display = 'flex';
+    document.getElementById('mainLayout').style.display = 'none';
+  }
+});
+
+// 3. Navigation
+document.querySelectorAll('.nav-btn:not(.logout-btn)').forEach(btn => {
   btn.addEventListener('click', (e) => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -270,22 +292,19 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
-// Math & Game Constants
+// 4. Game State & Math
 const GRID_SIZE = 25;
 const RTP = 0.99;
 const MinesMath = {
   multiplierAt(picks, mines){
     if(picks <= 0) return 1.00;
     let P = 1;
-    for(let i=0; i<picks; i++){
-      P *= ((GRID_SIZE - mines - i) / (GRID_SIZE - i));
-    }
+    for(let i=0; i<picks; i++) P *= ((GRID_SIZE - mines - i) / (GRID_SIZE - i));
     if(P <= 0) return 0;
     return Math.trunc(((1 / P) * RTP) * 100) / 100; 
   }
 };
 
-// State
 let state = {
   mode: 'real',
   balances: { real: 0.00, demo: 1000.00 },
@@ -293,23 +312,16 @@ let state = {
   mineCount: 3,
   inRound: false,
   boardMines: new Set(),
-  picks: 0,
-  history: []
+  picks: 0
 };
 
 const el = {
-  balanceVal: document.getElementById('balanceVal'),
-  betInput: document.getElementById('betInput'),
-  minesSelect: document.getElementById('minesSelect'),
-  nextMultVal: document.getElementById('nextMultVal'),
-  profitVal: document.getElementById('profitVal'),
-  cashoutBtn: document.getElementById('cashoutBtn'),
-  grid: document.getElementById('grid'),
-  toast: document.getElementById('toast'),
-  startHint: document.getElementById('startHint'),
-  historyList: document.getElementById('historyList'),
-  quickBtns: document.querySelectorAll('.bet-quick-btns button'),
-  btnRefreshDemo: document.getElementById('btnRefreshDemo')
+  balanceVal: document.getElementById('balanceVal'), betInput: document.getElementById('betInput'),
+  minesSelect: document.getElementById('minesSelect'), nextMultVal: document.getElementById('nextMultVal'),
+  profitVal: document.getElementById('profitVal'), cashoutBtn: document.getElementById('cashoutBtn'),
+  grid: document.getElementById('grid'), toast: document.getElementById('toast'),
+  startHint: document.getElementById('startHint'), historyList: document.getElementById('historyList'),
+  quickBtns: document.querySelectorAll('.bet-quick-btns button')
 };
 
 const GEM_SVG = `<svg viewBox="0 0 64 64" fill="none" style="width:56%;height:56%;filter:drop-shadow(0 0 10px #00ffb2);"><polygon points="32,4 50,20 58,24 32,60 6,24 14,20" fill="#00ffb2"/></svg>`;
@@ -321,26 +333,64 @@ function showToast(msg, type){
   setTimeout(()=> el.toast.classList.remove('show'), 2600);
 }
 
-// Mode Switch
+// 5. Data Syncing
+async function fetchUserData() {
+  const { data, error } = await supabaseClient.from('player_balances').select('*').eq('user_id', currentUser.id).single();
+  if (data) {
+    state.balances.real = parseFloat(data.real_balance);
+    state.balances.demo = parseFloat(data.demo_balance);
+  } else {
+    await supabaseClient.from('player_balances').insert([{ user_id: currentUser.id }]);
+    state.balances = { real: 0.00, demo: 1000.00 };
+  }
+  updateDashboard();
+  loadHistoryFromDB();
+}
+
+async function syncBalance() {
+  if (!currentUser) return;
+  await supabaseClient.from('player_balances').update({
+    real_balance: state.balances.real,
+    demo_balance: state.balances.demo
+  }).eq('user_id', currentUser.id);
+  updateDashboard();
+}
+
+async function loadHistoryFromDB() {
+  const { data } = await supabaseClient.from('game_history').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(20);
+  el.historyList.innerHTML = '';
+  if (data && data.length > 0) {
+    data.forEach(record => appendHistoryUI(record.payout > 0, record));
+  } else {
+    el.historyList.innerHTML = '<div style="color:var(--text-dim); text-align:center;">No bets placed yet.</div>';
+  }
+}
+
+function appendHistoryUI(won, record) {
+  if(el.historyList.innerHTML.includes('No bets placed yet')) el.historyList.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = `history-row ${won ? 'win' : 'loss'}`;
+  div.innerHTML = `<div><strong>${won ? 'WIN' : 'LOSS'}</strong> | ${new Date(record.created_at || Date.now()).toLocaleTimeString()}<br><span style="font-size:12px;color:var(--text-dim);">${record.mode.toUpperCase()} · ${record.mines} Mines, ${record.picks} Picks</span></div> <div style="text-align:right;">Bet: ${fmtMoney(record.bet)}<br><strong style="color:inherit;">${won ? '+' + fmtMoney(record.payout) : '-' + fmtMoney(record.bet)}</strong></div>`;
+  el.historyList.prepend(div);
+}
+
+// 6. Game Logic
 document.getElementById('modeReal').addEventListener('click', (e) => switchMode('real', e.target));
 document.getElementById('modeDemo').addEventListener('click', (e) => switchMode('demo', e.target));
 
 function switchMode(mode, targetBtn) {
-  if (state.inRound) {
-    showToast('Cannot switch modes during an active game', 'lose');
-    return;
-  }
+  if (state.inRound) { showToast('Cannot switch modes during an active game', 'lose'); return; }
   document.querySelectorAll('.mode-switch button').forEach(b => b.classList.remove('active'));
   targetBtn.classList.add('active');
   state.mode = mode;
-  el.btnRefreshDemo.style.display = mode === 'demo' ? 'block' : 'none';
-  buildGrid(); // Reset board cleanly on mode switch
+  document.getElementById('btnRefreshDemo').style.display = mode === 'demo' ? 'block' : 'none';
+  buildGrid();
   updateDashboard();
 }
 
-function refreshDemo() {
+async function refreshDemo() {
   state.balances.demo = 1000.00;
-  updateDashboard();
+  await syncBalance();
   showToast('Demo balance refreshed', 'win');
 }
 
@@ -384,30 +434,14 @@ function updateDashboard(){
   }
 }
 
-async function logHistory(won, profitAmt) {
-  const record = { mode: state.mode, bet: state.betAmount, payout: won ? profitAmt : 0, mines: state.mineCount, picks: state.picks, time: new Date().toLocaleTimeString() };
-  state.history.unshift(record);
-  if(state.history.length > 50) state.history.pop();
-  
-  if (state.history.length === 1) el.historyList.innerHTML = ''; // Clear empty state text
-  
-  const div = document.createElement('div');
-  div.className = `history-row ${won ? 'win' : 'loss'}`;
-  div.innerHTML = `<div><strong>${won ? 'WIN' : 'LOSS'}</strong> | ${record.time}<br><span style="font-size:12px;color:var(--text-dim);">${record.mines} Mines, ${record.picks} Picks</span></div> <div style="text-align:right;">Bet: ${fmtMoney(record.bet)}<br><strong style="color:inherit;">${won ? '+' + fmtMoney(record.payout) : '-' + fmtMoney(record.bet)}</strong></div>`;
-  el.historyList.prepend(div);
-
-  try { await supabaseClient.from('game_history').insert([record]); } 
-  catch (err) { console.log("Supabase history setup pending", err); }
-}
-
-function startRound() {
+async function startRound() {
   const bet = parseFloat(el.betInput.value);
   if(isNaN(bet) || bet <= 0 || bet > state.balances[state.mode]){
     showToast('Invalid bet or insufficient funds', 'lose');
     return false;
   }
 
-  // If a previous game was over, reset the grid classes before starting new game
+  // Clear previous game visual state before starting
   el.grid.querySelectorAll('.tile').forEach(t => {
     t.className = 'tile';
     t.querySelector('.tile-back').innerHTML = '';
@@ -419,6 +453,8 @@ function startRound() {
   state.inRound = true;
   state.picks = 0;
   
+  await syncBalance(); // Sync balance decrement immediately
+
   const indices = Array.from({length:GRID_SIZE}, (_,i)=>i);
   for(let i=indices.length-1; i>0; i--){
     const j = Math.floor(Math.random()*(i+1));
@@ -439,7 +475,7 @@ function handleTileClick(index, tileEl) {
   if (tileEl.classList.contains('flipped') || tileEl.classList.contains('disabled')) return;
   
   if (!state.inRound) {
-    const started = startRound();
+    const started = startRound(); // Start cycle implicitly when clicked
     if(!started) return;
   }
 
@@ -449,20 +485,18 @@ function handleTileClick(index, tileEl) {
   if (state.boardMines.has(index)) {
     backFace.classList.add('mine-face');
     backFace.innerHTML = MINE_SVG;
-    endRound(false, tileEl);
+    endRound(false);
   } else {
     state.picks++;
     backFace.classList.add('gem-face');
     backFace.innerHTML = GEM_SVG;
     updateDashboard();
 
-    if (state.picks >= (GRID_SIZE - state.mineCount)) {
-      endRound(true);
-    }
+    if (state.picks >= (GRID_SIZE - state.mineCount)) endRound(true);
   }
 }
 
-function endRound(won) {
+async function endRound(won) {
   state.inRound = false;
   el.cashoutBtn.style.display = 'none';
   el.startHint.style.display = 'block';
@@ -478,6 +512,7 @@ function endRound(won) {
     showToast('Mine hit!', 'lose');
   }
 
+  // Reveal board securely
   el.grid.querySelectorAll('.tile').forEach(t => {
     const idx = parseInt(t.dataset.index, 10);
     if(state.boardMines.has(idx) && !t.classList.contains('flipped')){
@@ -490,9 +525,12 @@ function endRound(won) {
     if(!t.classList.contains('flipped')) t.classList.add('postgame-dim');
   });
 
-  logHistory(won, profit);
+  await syncBalance(); // Update DB balance with profit
+  
+  const record = { user_id: currentUser.id, mode: state.mode, bet: state.betAmount, payout: profit, mines: state.mineCount, picks: state.picks };
+  appendHistoryUI(won, record);
+  await supabaseClient.from('game_history').insert([record]);
   updateDashboard();
-  // Auto-refresh bug removed: Grid visually stays exactly as it is until the user clicks a tile for the NEXT round.
 }
 
 el.cashoutBtn.addEventListener('click', () => {
@@ -509,86 +547,60 @@ el.quickBtns.forEach(btn => {
   });
 });
 
-// Deposit Logic
+// 7. Deposit Logic
 const cryptoAddresses = {
   BTC: "bc1qmx0y5dedtp7q4gsjyaxgyyh8yf6jlx62avqgxw",
   ETH: "0x9ab0E62AD064b97282762932847A13739F108fF6",
   SOL: "nCxB4EmbDC4juvyzVcy8fAiStyz6TQmdeimBtXjkEXx",
   TRX: "THJ2FEKtohEkNEKYz9ADZedX74dBWBvP8z",
-  USDT: {
-    Tron: "THJ2FEKtohEkNEKYz9ADZedX74dBWBvP8z",
-    ETH: "0x9ab0E62AD064b97282762932847A13739F108fF6",
-    BNB: "0x9ab0E62AD064b97282762932847A13739F108fF6"
-  }
+  USDT: { Tron: "THJ2FEKtohEkNEKYz9ADZedX74dBWBvP8z", ETH: "0x9ab0E62AD064b97282762932847A13739F108fF6", BNB: "0x9ab0E62AD064b97282762932847A13739F108fF6" }
 };
 
-const depositCoin = document.getElementById('depositCoin');
-const depositChain = document.getElementById('depositChain');
-const chainSelectGroup = document.getElementById('chainSelectGroup');
-const addressGroup = document.getElementById('addressGroup');
-const depositAddressText = document.getElementById('depositAddressText');
-const depositAmount = document.getElementById('depositAmount');
-const submitDepositBtn = document.getElementById('submitDepositBtn');
+document.getElementById('depositCoin').addEventListener('change', updateDepositUI);
+document.getElementById('depositChain').addEventListener('change', updateDepositUI);
 
 function updateDepositUI() {
-  const coin = depositCoin.value;
-  if(!coin) return;
-
+  const coin = document.getElementById('depositCoin').value;
   if (coin === 'USDT') {
-    chainSelectGroup.style.display = 'block';
-    const chain = depositChain.value;
+    document.getElementById('chainSelectGroup').style.display = 'block';
+    const chain = document.getElementById('depositChain').value;
     if (chain) {
-      addressGroup.style.display = 'block';
-      depositAddressText.textContent = cryptoAddresses.USDT[chain];
+      document.getElementById('addressGroup').style.display = 'block';
+      document.getElementById('depositAddressText').textContent = cryptoAddresses.USDT[chain];
     } else {
-      addressGroup.style.display = 'none';
+      document.getElementById('addressGroup').style.display = 'none';
     }
   } else {
-    chainSelectGroup.style.display = 'none';
-    depositChain.value = "";
-    addressGroup.style.display = 'block';
-    depositAddressText.textContent = cryptoAddresses[coin];
+    document.getElementById('chainSelectGroup').style.display = 'none';
+    document.getElementById('depositChain').value = "";
+    document.getElementById('addressGroup').style.display = 'block';
+    document.getElementById('depositAddressText').textContent = cryptoAddresses[coin];
   }
 }
 
-depositCoin.addEventListener('change', updateDepositUI);
-depositChain.addEventListener('change', updateDepositUI);
-
-submitDepositBtn.addEventListener('click', async () => {
-  const coin = depositCoin.value;
-  const chain = coin === 'USDT' ? depositChain.value : null;
-  const amount = parseFloat(depositAmount.value);
-
-  if (!amount || amount <= 0) {
-    showToast('Enter a valid deposit amount', 'lose');
-    return;
-  }
+document.getElementById('submitDepositBtn').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('depositAmount').value);
+  if (!amount || amount <= 0) { showToast('Enter a valid deposit amount', 'lose'); return; }
 
   const record = {
-    coin: coin,
-    chain: chain,
-    amount: amount,
-    status: 'pending',
-    time: new Date().toISOString()
+    user_id: currentUser.id,
+    coin: document.getElementById('depositCoin').value,
+    chain: document.getElementById('depositCoin').value === 'USDT' ? document.getElementById('depositChain').value : null,
+    amount: amount
   };
 
-  try {
-    await supabaseClient.from('deposit_requests').insert([record]);
+  const { error } = await supabaseClient.from('deposit_requests').insert([record]);
+  if (!error) {
     showToast('Deposit request submitted!', 'win');
-    depositAmount.value = '';
-    
-    // Switch to history or game view after deposit logic if desired
-  } catch (err) {
-    console.error("Supabase deposit logging pending:", err);
-    showToast('Request submitted locally (DB not connected)', 'win');
-    depositAmount.value = '';
+    document.getElementById('depositAmount').value = '';
+  } else {
+    showToast('Failed to submit request', 'lose');
   }
 });
 
-// Initialization
+// Init
 buildMineSelect();
 buildGrid();
-updateDashboard();
 </script>
 </body>
 </html>
